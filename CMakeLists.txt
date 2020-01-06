@@ -17,6 +17,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(-fcolor-diagnostics -Wall)
 
+find_package(Threads REQUIRED)
+
 include(CheckIPOSupported)
 check_ipo_supported(RESULT supported OUTPUT error)
 if( supported )
@@ -38,7 +40,7 @@ add_library(
 )
 
 add_executable(common_test src/common_test.cc)
-target_link_libraries(common_test common gmock gtest gtest_main) 
+target_link_libraries(common_test common gmock gtest_main gtest Threads::Threads)
 gtest_discover_tests(common_test)
 
 add_library(
@@ -56,7 +58,7 @@ add_library(
 target_link_libraries(bit_writer common)
 
 add_executable(bits_test src/bits_test.cc)
-target_link_libraries(bits_test bit_writer bit_reader gmock gtest gtest_main) 
+target_link_libraries(bits_test bit_writer bit_reader gmock gtest_main gtest Threads::Threads)
 gtest_discover_tests(bits_test)
 
 add_library(
@@ -66,7 +68,7 @@ add_library(
 target_link_libraries(entropy_coder_common bit_reader bit_writer)
 
 add_executable(entropy_coder_common_test src/entropy_coder_common_test.cc)
-target_link_libraries(entropy_coder_common_test entropy_coder_common gmock gtest gtest_main) 
+target_link_libraries(entropy_coder_common_test entropy_coder_common gmock gtest_main gtest Threads::Threads)
 gtest_discover_tests(entropy_coder_common_test)
 
 add_library(
@@ -77,7 +79,7 @@ add_library(
 target_link_libraries(huffman entropy_coder_common)
 
 add_executable(huffman_test src/huffman_test.cc)
-target_link_libraries(huffman_test huffman gmock gtest gtest_main) 
+target_link_libraries(huffman_test huffman gmock gtest_main gtest Threads::Threads)
 gtest_discover_tests(huffman_test)
 
 add_library(
@@ -88,7 +90,7 @@ add_library(
 target_link_libraries(ans entropy_coder_common)
 
 add_executable(ans_test src/ans_test.cc)
-target_link_libraries(ans_test ans gmock gtest gtest_main) 
+target_link_libraries(ans_test ans gmock gtest_main gtest Threads::Threads)
 gtest_discover_tests(ans_test)
 
 
