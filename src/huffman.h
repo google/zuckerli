@@ -1,0 +1,4 @@
+#ifndef ZUCKERLI_HUFFMAN_H
+#define ZUCKERLI_HUFFMAN_H
+
+#endif // ZUCKERLI_HUFFMAN_H
