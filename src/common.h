@@ -3,9 +3,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,7 +37,8 @@
 #define ZKR_ABORT(...) ::zuckerli::Abort(__FILE__, __LINE__, __VA_ARGS__)
 
 #ifdef ZKR_CRASH_ON_ERROR
-#define ZKR_FAILURE(...) ::zuckerli::Abort(__FILE__, __LINE__, __VA_ARGS__)
+#define ZKR_FAILURE(...) \
+  ::zuckerli::Abort(__FILE__, __LINE__, __VA_ARGS__), false
 #else
 #define ZKR_FAILURE(...) false
 #endif
@@ -46,15 +47,19 @@
 
 #define ZKR_INLINE inline __attribute__((always_inline))
 
+#define ZKR_RETURN_IF_ERROR(cond) \
+  if (!(cond)) return false;
+
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
 #error "bit_writer and reader assumes a little endian system"
 #endif
 
 namespace zuckerli {
-__attribute__((noreturn, __format__(__printf__, 3, 4))) void
-Abort(const char *file, int line, const char *format, ...);
+__attribute__((noreturn, __format__(__printf__, 3, 4))) void Abort(
+    const char *file, int line, const char *format, ...);
 
-template <typename T, typename U> constexpr ZKR_INLINE T DivCeil(T a, U b) {
+template <typename T, typename U>
+constexpr ZKR_INLINE T DivCeil(T a, U b) {
   return (a + b - 1) / b;
 }
 
@@ -62,6 +67,6 @@ ZKR_INLINE int FloorLog2Nonzero(uint64_t value) {
   return 63 - __builtin_clzll(value);
 }
 
-} // namespace zuckerli
+}  // namespace zuckerli
 
-#endif // ZUCKERLI_COMMON_H
+#endif  // ZUCKERLI_COMMON_H
