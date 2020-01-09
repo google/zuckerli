@@ -3,9 +3,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,7 +28,7 @@ namespace zuckerli {
 // TODO: does not handle reads past the end of the stream (assumed to be
 // 0 bits).
 class BitReader {
-public:
+ public:
   static constexpr size_t kMaxBitsPerCall = 56;
 
   BitReader(const uint8_t *ZKR_RESTRICT data, size_t size);
@@ -39,7 +39,7 @@ public:
   BitReader &operator=(const BitReader &other) = delete;
   BitReader &operator=(BitReader &&other) = delete;
 
-  uint64_t PeekBits(size_t nbits) { return buf_ & ((1 << nbits) - 1); }
+  uint64_t PeekBits(size_t nbits) { return buf_ & ((1ULL << nbits) - 1); }
 
   ZKR_INLINE uint64_t ReadBits(size_t nbits) {
     Refill();
@@ -65,7 +65,7 @@ public:
     buf_ >>= nbits;
   }
 
-private:
+ private:
   uint64_t buf_{0};
   size_t bits_in_buf_{0};
   const uint8_t *ZKR_RESTRICT next_byte_;
@@ -73,6 +73,6 @@ private:
   void BoundsCheckedRefill();
 };
 
-} // namespace zuckerli
+}  // namespace zuckerli
 
-#endif // ZUCKERLI_BIT_READER_H
+#endif  // ZUCKERLI_BIT_READER_H

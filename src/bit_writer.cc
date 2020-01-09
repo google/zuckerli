@@ -17,6 +17,7 @@
 
 #include "common.h"
 
+namespace zuckerli {
 void BitWriter::Write(size_t nbits, size_t bits) {
   ZKR_DASSERT(nbits >= 0);
   ZKR_DASSERT(bits >> nbits == 0);
@@ -48,3 +49,4 @@ void BitWriter::Reserve(size_t nbits) {
     data_.resize(required_size);
   }
 }
+}  // namespace zuckerli

@@ -184,20 +184,20 @@ void HuffmanEncode(const IntegerData& integers, size_t num_contexts,
 
   // Pre-compute the number of bits needed.
   size_t total_nbits = 0;
-  integers.ForEach(
-      [&](size_t ctx, size_t token, size_t nextrabits, size_t extrabits) {
-        total_nbits += info[ctx][token].nbits;
-        total_nbits += nextrabits;
-      });
+  integers.ForEach([&](size_t ctx, size_t token, size_t nextrabits,
+                       size_t extrabits, size_t i) {
+    total_nbits += info[ctx][token].nbits;
+    total_nbits += nextrabits;
+  });
 
   writer->Reserve(total_nbits);
 
   // Encode the actual data.
-  integers.ForEach(
-      [&](size_t ctx, size_t token, size_t nextrabits, size_t extrabits) {
-        writer->Write(info[ctx][token].nbits, info[ctx][token].bits);
-        writer->Write(nextrabits, extrabits);
-      });
+  integers.ForEach([&](size_t ctx, size_t token, size_t nextrabits,
+                       size_t extrabits, size_t i) {
+    writer->Write(info[ctx][token].nbits, info[ctx][token].bits);
+    writer->Write(nextrabits, extrabits);
+  });
 }
 
 bool HuffmanReader::Init(size_t num_contexts, BitReader* ZKR_RESTRICT br) {

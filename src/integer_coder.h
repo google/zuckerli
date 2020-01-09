@@ -24,7 +24,8 @@
 namespace zuckerli {
 
 // Only entropy-coded symbols smaller than this value are supported.
-static constexpr size_t kNumSymbols = 256;
+static constexpr size_t kLogNumSymbols = 8;
+static constexpr size_t kNumSymbols = 1 << kLogNumSymbols;
 
 // Only context ids smaller than this value are supported.
 static constexpr size_t kMaxNumContexts = 256;
@@ -120,12 +121,22 @@ class IntegerData {
     for (size_t i = 0; i < values_.size(); i++) {
       size_t token, nbits, bits;
       IntegerCoder::Encode(values_[i], &token, &nbits, &bits);
-      cb(ctxs_[i], token, nbits, bits);
+      cb(ctxs_[i], token, nbits, bits, i);
+    }
+  }
+
+  template <typename CB>
+  void ForEachReversed(const CB &cb) const {
+    for (size_t i = values_.size(); i > 0; i--) {
+      size_t token, nbits, bits;
+      IntegerCoder::Encode(values_[i - 1], &token, &nbits, &bits);
+      cb(ctxs_[i - 1], token, nbits, bits, i - 1);
     }
   }
 
   void Histograms(std::vector<std::vector<size_t>> *histo) const {
-    ForEach([histo](size_t ctx, size_t token, size_t nbits, size_t bits) {
+    ForEach([histo](size_t ctx, size_t token, size_t nbits, size_t bits,
+                    size_t idx) {
       if (histo->size() <= ctx) {
         histo->resize(ctx + 1);
       }

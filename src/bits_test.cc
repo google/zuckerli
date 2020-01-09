@@ -3,21 +3,21 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "bit_reader.h"
-#include "bit_writer.h"
-
 #include <gtest/gtest.h>
+
 #include <random>
 #include <vector>
 
+#include "bit_reader.h"
+#include "bit_writer.h"
 #include "common.h"
 
 namespace zuckerli {
@@ -59,7 +59,7 @@ TEST(BitsTest, TestWriteRead) {
   writer.Reserve(kTestSize * BitWriter::kMaxBitsPerCall);
   for (size_t i = 0; i < kTestSize; i++) {
     size_t nbits = dist(rng);
-    size_t bits = rng() & ((1 << nbits) - 1);
+    size_t bits = rng() & ((1ULL << nbits) - 1);
     writer.Write(nbits, bits);
     all_bits.emplace_back(nbits, bits);
   }
@@ -69,5 +69,5 @@ TEST(BitsTest, TestWriteRead) {
     EXPECT_EQ(reader.ReadBits(all_bits[i].first), all_bits[i].second);
   }
 }
-} // namespace
-} // namespace zuckerli
+}  // namespace
+}  // namespace zuckerli
