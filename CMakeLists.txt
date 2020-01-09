@@ -94,3 +94,16 @@ target_link_libraries(ans_test ans gmock gtest_main gtest Threads::Threads)
 gtest_discover_tests(ans_test)
 
 
+add_library(
+  uncompressed_graph
+  src/uncompressed_graph.cc
+  src/uncompressed_graph.h
+)
+target_link_libraries(uncompressed_graph entropy_coder_common)
+
+add_executable(uncompressed_graph_test src/uncompressed_graph_test.cc)
+target_link_libraries(uncompressed_graph_test uncompressed_graph gmock gtest_main gtest Threads::Threads)
+gtest_discover_tests(uncompressed_graph_test)
+
+target_compile_definitions(uncompressed_graph_test PRIVATE
+        -DTESTDATA="${CMAKE_CURRENT_SOURCE_DIR}/testdata")
