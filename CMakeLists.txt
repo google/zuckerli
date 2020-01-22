@@ -108,6 +108,11 @@ gtest_discover_tests(uncompressed_graph_test)
 target_compile_definitions(uncompressed_graph_test PRIVATE
         -DTESTDATA="${CMAKE_CURRENT_SOURCE_DIR}/testdata")
 
+add_executable(traversal_main src/traversal_main.cc)
+target_link_libraries(traversal_main uncompressed_graph Threads::Threads)
+
+target_compile_definitions(traversal_main PRIVATE
+        -DTESTDATA="${CMAKE_CURRENT_SOURCE_DIR}/testdata")
 
 add_library(encode src/encode.h src/encode.cc src/context_model.h src/checksum.h)
 target_link_libraries(encode ans huffman uncompressed_graph)
