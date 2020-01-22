@@ -107,3 +107,22 @@ gtest_discover_tests(uncompressed_graph_test)
 
 target_compile_definitions(uncompressed_graph_test PRIVATE
         -DTESTDATA="${CMAKE_CURRENT_SOURCE_DIR}/testdata")
+
+
+add_library(encode src/encode.h src/encode.cc src/context_model.h src/checksum.h)
+target_link_libraries(encode ans huffman uncompressed_graph)
+
+add_library(decode src/decode.h src/context_model.h src/checksum.h)
+target_link_libraries(decode ans huffman)
+
+add_executable(roundtrip_test src/roundtrip_test.cc)
+target_link_libraries(roundtrip_test encode decode uncompressed_graph gmock gtest_main gtest Threads::Threads)
+
+target_compile_definitions(roundtrip_test PRIVATE
+        -DTESTDATA="${CMAKE_CURRENT_SOURCE_DIR}/testdata")
+
+add_executable(encoder src/encode_main.cc)
+target_link_libraries(encoder encode)
+
+add_executable(decoder src/decode_main.cc)
+target_link_libraries(decoder decode)

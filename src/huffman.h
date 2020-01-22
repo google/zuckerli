@@ -42,6 +42,9 @@ class HuffmanReader {
   // `ctx`.
   size_t Read(size_t ctx, BitReader* ZKR_RESTRICT br);
 
+  // For interface compatibilty with ANS reader.
+  bool CheckFinalState() const { return true; }
+
  private:
   // For each context, maps the next kMaxHuffmanBits in the bitstream into a
   // symbol and the number of bits that should actually be consumed from the

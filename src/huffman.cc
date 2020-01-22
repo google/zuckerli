@@ -88,6 +88,20 @@ bool ComputeSymbolBits(HuffmanSymbolInfo* ZKR_RESTRICT info) {
 // decoder.
 bool ComputeDecoderTable(const HuffmanSymbolInfo* sym_info,
                          HuffmanDecoderInfo* decoder_info) {
+  size_t cnt = 0;
+  size_t s = 0;
+  for (size_t sym = 0; sym < kNumSymbols; sym++) {
+    if (sym_info[sym].present == 0) continue;
+    cnt++;
+    s = sym;
+  }
+  if (cnt <= 1) {
+    for (size_t i = 0; i < (1 << kMaxHuffmanBits); i++) {
+      decoder_info[i].nbits = sym_info[s].nbits;
+      decoder_info[i].symbol = s;
+    }
+    return true;
+  }
   for (size_t i = 0; i < (1 << kMaxHuffmanBits); i++) {
     size_t s = kNumSymbols;
     for (size_t sym = 0; sym < kNumSymbols; sym++) {
@@ -115,6 +129,14 @@ void ComputeSymbolNumBits(const std::vector<size_t>& histogram,
     if (histogram[i] == 0) continue;
     info[i].present = 1;
     nzsym++;
+  }
+  if (nzsym <= 1) {
+    for (size_t i = 0; i < kNumSymbols; i++) {
+      if (info[i].present) {
+        info[i].nbits = 1;
+      }
+    }
+    return;
   }
 
   // Create a list of symbols for any given cost.

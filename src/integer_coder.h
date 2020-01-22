@@ -103,6 +103,11 @@ class IntegerData {
     ctxs_.push_back(ctx);
     values_.push_back(val);
   }
+  void RemoveLast() {
+    ZKR_DASSERT(!ctxs_.empty());
+    ctxs_.pop_back();
+    values_.pop_back();
+  }
 
   void TotalCost(const uint8_t *ZKR_RESTRICT ctx_group,
                  const float *ZKR_RESTRICT sym_cost,
@@ -152,6 +157,12 @@ class IntegerData {
   std::vector<uint32_t> values_;
   std::vector<uint8_t> ctxs_;
 };
+
+ZKR_INLINE uint64_t PackSigned(int64_t s) { return s < 0 ? 2 * -s - 1 : 2 * s; }
+
+ZKR_INLINE int64_t UnpackSigned(uint64_t s) {
+  return s & 1 ? -((s + 1) >> 1) : s >> 1;
+}
 
 }  // namespace zuckerli
 

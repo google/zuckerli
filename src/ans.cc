@@ -27,7 +27,10 @@ namespace {
 // Ensure that each histogram sums to 1<<kANSNumBits.
 void NormalizeHistogram(std::vector<size_t>* histogram) {
   int64_t sum = std::accumulate(histogram->begin(), histogram->end(), 0);
-  if (sum == 0) return;
+  if (sum == 0) {
+    (*histogram)[0] = 1 << kANSNumBits;
+    return;
+  }
   std::vector<std::pair<size_t, int>> symbols_with_freq;
   for (size_t i = 0; i < histogram->size(); i++) {
     if ((*histogram)[i] != 0) {
@@ -212,8 +215,10 @@ void ANSEncode(const IntegerData& integers, size_t num_contexts,
     InitAliasTable(histograms[i], &entries[0]);
 
     // Compute encoding information.
-    for (size_t sym = 0; sym < histograms[i].size(); sym++) {
-      size_t freq = histograms[i][sym];
+    for (size_t sym = 0; sym < std::max<size_t>(histograms[i].size(), 1);
+         sym++) {
+      size_t freq =
+          histograms[i].empty() ? (1 << kANSNumBits) : histograms[i][sym];
       enc_symbol_info[i][sym].freq = freq;
       if (freq != 0) {
         enc_symbol_info[i][sym].ifreq =
@@ -223,6 +228,7 @@ void ANSEncode(const IntegerData& integers, size_t num_contexts,
     }
     for (size_t t = 0; t < (1 << kANSNumBits); t++) {
       AliasTable::Symbol s = AliasTable::Lookup(entries, t);
+      if (s.freq == 0) continue;
       enc_symbol_info[i][s.value].reverse_map[s.offset] = t;
     }
   }
