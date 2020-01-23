@@ -1,6 +1,7 @@
 #ifndef ZUCKERLI_DECODE_H
 #define ZUCKERLI_DECODE_H
 #include <chrono>
+#include <limits>
 #include <vector>
 
 #include "ans.h"
@@ -24,7 +25,8 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
   std::vector<uint32_t> residuals;
   std::vector<uint32_t> blocks;
   for (size_t i = 0; i < graph.size(); i++) graph[i].clear();
-
+  size_t rle_min =
+      allow_random_access ? kRleMin : std::numeric_limits<size_t>::max();
   // The three quantities below get reset to after kDegreeReferenceChunkSize
   // adjacency lists if in random-access mode.
   //
@@ -166,7 +168,7 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
       }
       // If the current run of zeros is large enough, read how many further
       // zeros to decode from the bitstream.
-      if (zero_run >= kRleMin) {
+      if (zero_run >= rle_min) {
         rle_zeros = IntegerCoder::Read(kRleContext, br, reader);
         zero_run = 0;
       }

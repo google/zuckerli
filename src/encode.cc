@@ -115,8 +115,8 @@ void ProcessBlocks(const std::vector<uint32_t> &blocks,
 
 template <typename CB1, typename CB2>
 void ProcessResiduals(const std::vector<uint32_t> &residuals, size_t i,
-                      const std::vector<uint32_t> &adj_block, CB1 undo_cb,
-                      CB2 cb) {
+                      const std::vector<uint32_t> &adj_block,
+                      bool allow_random_access, CB1 undo_cb, CB2 cb) {
   size_t ref = i;
   size_t last_delta = 0;
   size_t adj_pos = 0;
@@ -140,7 +140,7 @@ void ProcessResiduals(const std::vector<uint32_t> &residuals, size_t i,
       }
     }
     if (last_delta != 0) {
-      if (zero_run >= kRleMin) {
+      if (zero_run >= kRleMin && allow_random_access) {
         for (size_t cnt = kRleMin; cnt < zero_run; cnt++) {
           undo_cb();
         }
@@ -154,7 +154,7 @@ void ProcessResiduals(const std::vector<uint32_t> &residuals, size_t i,
     cb(ctx, last_delta);
     ref = residuals[j] + 1;
   }
-  if (zero_run >= kRleMin) {
+  if (zero_run >= kRleMin && allow_random_access) {
     for (size_t cnt = kRleMin; cnt < zero_run; cnt++) {
       undo_cb();
     }
@@ -285,7 +285,8 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
       c = 0;
       // No block copying.
       residuals.assign(g.neighs(i).begin(), g.neighs(i).end());
-      ProcessResiduals(residuals, i, adj_block, rle_undo, token_cost);
+      ProcessResiduals(residuals, i, adj_block, allow_random_access, rle_undo,
+                       token_cost);
       float cost = c;
       float base_cost = c;
       saved_costs[i] = 0;
@@ -297,7 +298,8 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
         ProcessBlocks(
             blocks, g, i, ref, [&](size_t x) { adj_block.push_back(x); },
             token_cost);
-        ProcessResiduals(residuals, i, adj_block, rle_undo, token_cost);
+        ProcessResiduals(residuals, i, adj_block, allow_random_access, rle_undo,
+                         token_cost);
         if (c + 1e-6f < cost) {
           references[i] = ref;
           cost = c;
@@ -335,7 +337,8 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
         c = 0;
         // No block copying
         residuals.assign(g.neighs(i).begin(), g.neighs(i).end());
-        ProcessResiduals(residuals, i, adj_block, rle_undo, token_cost);
+        ProcessResiduals(residuals, i, adj_block, allow_random_access, rle_undo,
+                         token_cost);
         float cost = c;
 
         for (size_t ref = 1; ref < std::min(kSearchNum, i) + 1; ref++) {
@@ -349,7 +352,8 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
           ProcessBlocks(
               blocks, g, i, ref, [&](size_t x) { adj_block.push_back(x); },
               token_cost);
-          ProcessResiduals(residuals, i, adj_block, rle_undo, token_cost);
+          ProcessResiduals(residuals, i, adj_block, allow_random_access,
+                           rle_undo, token_cost);
           if (c + 1e-6f < cost) {
             references[i] = ref;
             cost = c;
@@ -387,7 +391,8 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
               blocks, g, i, references[i],
               [&](size_t x) { adj_block.push_back(x); }, token_cost);
         }
-        ProcessResiduals(residuals, i, adj_block, rle_undo, token_cost);
+        ProcessResiduals(residuals, i, adj_block, allow_random_access, rle_undo,
+                         token_cost);
       }
 
       for (size_t i = 0; i < kNumContexts; i++) {
@@ -444,7 +449,8 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
     }
     // Residuals.
     ProcessResiduals(
-        residuals, i, adj_block, [&]() { tokens.RemoveLast(); },
+        residuals, i, adj_block, allow_random_access,
+        [&]() { tokens.RemoveLast(); },
         [&](size_t ctx, size_t v) { tokens.Add(ctx, v); });
   }
   for (size_t i = 0; i < N; i++) {

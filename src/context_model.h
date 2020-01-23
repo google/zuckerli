@@ -59,8 +59,7 @@ static constexpr size_t kNumContexts = kRleContext + 1;
 // nodes for which residuals and references are delta-coded.
 static constexpr size_t kDegreeReferenceChunkSize = 32;
 
-// TODO: re-enable RLE for random access.
-static constexpr size_t kRleMin = std::numeric_limits<size_t>::max();
+static constexpr size_t kRleMin = 3;
 
 }  // namespace zuckerli
 
