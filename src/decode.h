@@ -18,12 +18,21 @@ template <typename Reader, typename CB>
 bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
                      BitReader* br, const CB& cb) {
   using IntegerCoder = zuckerli::IntegerCoder;
+  // Storage for the previous up-to-kNumAdjLists lists to be used as a
+  // reference.
   std::vector<std::vector<uint32_t>> graph(std::min(kNumAdjLists, N));
   std::vector<uint32_t> residuals;
   std::vector<uint32_t> blocks;
   for (size_t i = 0; i < graph.size(); i++) graph[i].clear();
+
+  // The three quantities below get reset to after kDegreeReferenceChunkSize
+  // adjacency lists if in random-access mode.
+  //
+  // Reference degree for degree delta coding.
   size_t ref = 0;
+  // Last degree delta for context modeling.
   size_t last_degree_delta = 0;
+  // Last reference offset for context modeling.
   size_t last_reference = 0;
   for (size_t i = 0; i < N; i++) {
     graph[i % kNumAdjLists].clear();
@@ -41,7 +50,9 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
     ref = degree;
     if (degree >= N) return ZKR_FAILURE("Invalid degree");
     if (degree == 0) continue;
-    // Block-copy from reference list.
+
+    // If this is not the first node, read the offset of the list to be used as
+    // a reference.
     size_t reference = 0;
     if (i != 0) {
       reference =
@@ -49,6 +60,9 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
       last_reference = reference;
     }
     if (reference > i) return ZKR_FAILURE("Invalid reference");
+
+    // If a reference is used, read the list of blocks of (alternating) copied
+    // and skipped edges.
     size_t copied = 0;
     if (reference != 0) {
       size_t block_count = IntegerCoder::Read(kBlockCountContext, br, reader);
@@ -67,26 +81,41 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
       if (graph[(i - reference) % kNumAdjLists].size() < pos) {
         return ZKR_FAILURE("Invalid block copy pattern");
       }
+      // Last block is implicit and goes to the end of the reference list.
       blocks.push_back(graph[(i - reference) % kNumAdjLists].size() - pos);
+      // Blocks in even positions are to be copied.
       for (size_t i = 0; i < blocks.size(); i += 2) {
         copied += blocks[i];
       }
     }
 
-    // Residuals.
+    // Read all the edges that are not copied.
+
+    // Reference node for delta-coding of neighbours.
     size_t ref = i;
+    // Number of edges to read.
     size_t num_residuals = degree - copied;
+    // Last delta for the residual edges, used for context modeling.
     size_t last_delta = 0;
+    // Current position in the reference list.
     size_t ref_pos = 0;
+    // Number of nodes of the current block that should still be copied.
     size_t to_copy = blocks.empty() ? 0 : blocks[0];
+    // Index of the next block.
     size_t next_block = 1;
+    // If we don't need to copy anything from the first block, and we have at
+    // least another even-positioned block, advance the position in the
+    // reference list accordingly.
     if (to_copy == 0 && blocks.size() > 2) {
       ref_pos = blocks[1];
       to_copy = blocks[2];
       next_block = 3;
     }
+    // ID of reference list.
     size_t ref_id = (i - reference) % kNumAdjLists;
+    // Number of consecutive zeros that have been decoded last.
     size_t zero_run = 0;
+    // Number of further 0s that should not be read from the bitstream.
     size_t rle_zeros = 0;
     const auto append = [&](size_t x) {
       if (x >= N) return ZKR_FAILURE("Invalid residual");
@@ -94,14 +123,13 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
       cb(i, x);
       return true;
     };
-    size_t cp = 0;
     for (size_t j = 0; j < num_residuals; j++) {
       size_t r;
       if (j == 0) {
         last_delta =
             IntegerCoder::Read(FirstResidualContext(num_residuals), br, reader);
         r = ref + UnpackSigned(last_delta);
-      } else if (rle_zeros > 0) {
+      } else if (rle_zeros > 0) {  // If in a zero run, don't read anything.
         last_delta = 0;
         r = ref;
       } else {
@@ -109,18 +137,23 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
             IntegerCoder::Read(ResidualContext(last_delta), br, reader);
         r = ref + last_delta;
       }
+      // Compute run of zeros if we read a zero and we are not already in one.
       if (last_delta == 0 && rle_zeros == 0) {
         zero_run++;
       } else {
         zero_run = 0;
       }
+      // If we are in a run of zeros, decrease its length.
       if (rle_zeros > 0) {
         rle_zeros--;
       }
+      // Merge the edges copied from the reference list with the ones read from
+      // the bitstream.
       while (to_copy > 0 && graph[ref_id][ref_pos] <= r) {
-        cp++;
         to_copy--;
         ZKR_RETURN_IF_ERROR(append(graph[ref_id][ref_pos]));
+        // If our delta coding would produce an edge to r, but y with y<=r is
+        // copied from the reference list, we increase r.
         if (j != 0 && graph[ref_id][ref_pos] >= ref) {
           r++;
         }
@@ -131,6 +164,8 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
           next_block += 2;
         }
       }
+      // If the current run of zeros is large enough, read how many further
+      // zeros to decode from the bitstream.
       if (zero_run >= kRleMin) {
         rle_zeros = IntegerCoder::Read(kRleContext, br, reader);
         zero_run = 0;
@@ -140,9 +175,9 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
       ref = r + 1;
     }
     ZKR_ASSERT(ref_pos + to_copy <= graph[ref_id].size());
+    // Process the rest of the block-copy list.
     while (to_copy > 0) {
       to_copy--;
-      cp++;
       ZKR_RETURN_IF_ERROR(append(graph[ref_id][ref_pos]));
       ref_pos++;
       if (to_copy == 0 && next_block + 1 < blocks.size()) {
