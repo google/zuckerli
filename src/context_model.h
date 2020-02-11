@@ -5,18 +5,24 @@
 
 #include "common.h"
 #include "integer_coder.h"
+#include "absl/flags/flag.h"
+
+ABSL_DECLARE_FLAG(int32_t, ref_block);
 
 namespace zuckerli {
 
-constexpr size_t kSearchNum = 32;
-constexpr size_t kNumAdjLists = kSearchNum + 1;
+ZKR_INLINE size_t SearchNum() {
+  ZKR_ASSERT(absl::GetFlag(FLAGS_ref_block) <= 64);
+  return absl::GetFlag(FLAGS_ref_block);
+};
+ZKR_INLINE size_t NumAdjLists() { return SearchNum() + 1; };
 
 static constexpr size_t kFirstDegreeContext = 0;
 static constexpr size_t kDegreeBaseContext = 1;
 static constexpr size_t kNumDegreeContexts = 32;
 static constexpr size_t kReferenceContextBase =
     kDegreeBaseContext + kNumDegreeContexts;
-static constexpr size_t kNumReferenceContexts = kNumAdjLists;
+static constexpr size_t kNumReferenceContexts = 64;  // At most 64.
 static constexpr size_t kBlockCountContext =
     kReferenceContextBase + kNumReferenceContexts;
 static constexpr size_t kBlockContext = kBlockCountContext + 1;

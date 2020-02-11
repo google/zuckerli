@@ -19,9 +19,9 @@ template <typename Reader, typename CB>
 bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
                      BitReader* br, const CB& cb) {
   using IntegerCoder = zuckerli::IntegerCoder;
-  // Storage for the previous up-to-kNumAdjLists lists to be used as a
+  // Storage for the previous up-to-NumAdjLists() lists to be used as a
   // reference.
-  std::vector<std::vector<uint32_t>> graph(std::min(kNumAdjLists, N));
+  std::vector<std::vector<uint32_t>> graph(std::min(NumAdjLists(), N));
   std::vector<uint32_t> residuals;
   std::vector<uint32_t> blocks;
   for (size_t i = 0; i < graph.size(); i++) graph[i].clear();
@@ -37,7 +37,8 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
   // Last reference offset for context modeling.
   size_t last_reference = 0;
   for (size_t i = 0; i < N; i++) {
-    graph[i % kNumAdjLists].clear();
+    size_t i_mod = i % NumAdjLists();
+    graph[i_mod].clear();
     blocks.clear();
     size_t degree;
     if ((allow_random_access && i % kDegreeReferenceChunkSize == 0) || i == 0) {
@@ -80,11 +81,11 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
         pos += block;
         blocks.push_back(block);
       }
-      if (graph[(i - reference) % kNumAdjLists].size() < pos) {
+      if (graph[(i - reference) % NumAdjLists()].size() < pos) {
         return ZKR_FAILURE("Invalid block copy pattern");
       }
       // Last block is implicit and goes to the end of the reference list.
-      blocks.push_back(graph[(i - reference) % kNumAdjLists].size() - pos);
+      blocks.push_back(graph[(i - reference) % NumAdjLists()].size() - pos);
       // Blocks in even positions are to be copied.
       for (size_t i = 0; i < blocks.size(); i += 2) {
         copied += blocks[i];
@@ -114,14 +115,14 @@ bool DecodeGraphImpl(size_t N, bool allow_random_access, Reader* reader,
       next_block = 3;
     }
     // ID of reference list.
-    size_t ref_id = (i - reference) % kNumAdjLists;
+    size_t ref_id = (i - reference) % NumAdjLists();
     // Number of consecutive zeros that have been decoded last.
     size_t zero_run = 0;
     // Number of further 0s that should not be read from the bitstream.
     size_t rle_zeros = 0;
     const auto append = [&](size_t x) {
       if (x >= N) return ZKR_FAILURE("Invalid residual");
-      graph[i % kNumAdjLists].push_back(x);
+      graph[i_mod].push_back(x);
       cb(i, x);
       return true;
     };

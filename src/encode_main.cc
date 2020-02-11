@@ -1,26 +1,24 @@
 #include <string.h>
 
 #include "encode.h"
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
 #include "uncompressed_graph.h"
 
-int main(int argc, char **argv) {
-  if (argc != 3 && argc != 4) {
-    fprintf(stderr, "Usage: %s in.bin out.hc [--allow_random_access]\n",
-            argv[0]);
-    return 1;
-  }
-  FILE *out = fopen(argv[2], "w");
+ABSL_FLAG(std::string, input_path, "", "Input file path");
+ABSL_FLAG(std::string, output_path, "", "Output file path");
+ABSL_FLAG(bool, allow_random_access, false, "Allow random access");
+
+int main(int argc, char** argv) {
+  absl::ParseCommandLine(argc, argv);
+  FILE* out = fopen(absl::GetFlag(FLAGS_output_path).c_str(), "w");
   if (out == nullptr) {
     fprintf(stderr, "Invalid output file %s\n", argv[2]);
   }
 
-  bool allow_random_access = false;
-  if (argc == 4 && strcmp("--allow_random_access", argv[3]) == 0) {
-    allow_random_access = true;
-  }
-
-  zuckerli::UncompressedGraph g(argv[1]);
-  auto data = zuckerli::EncodeGraph(g, allow_random_access);
+  zuckerli::UncompressedGraph g(absl::GetFlag(FLAGS_input_path));
+  auto data =
+      zuckerli::EncodeGraph(g, absl::GetFlag(FLAGS_allow_random_access));
   fwrite(data.data(), 1, data.size(), out);
   fclose(out);
 }

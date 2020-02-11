@@ -14,12 +14,11 @@
 
 #include "ans.h"
 
-#include <gtest/gtest.h>
-
 #include <random>
 
 #include "bit_reader.h"
 #include "integer_coder.h"
+#include "gtest/gtest.h"
 
 namespace zuckerli {
 namespace {

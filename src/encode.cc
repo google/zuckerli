@@ -12,7 +12,10 @@
 #include "context_model.h"
 #include "huffman.h"
 #include "integer_coder.h"
+#include "absl/flags/flag.h"
 #include "uncompressed_graph.h"
+
+ABSL_FLAG(int32_t, num_rounds, 1, "Number of rounds for reference finding");
 
 namespace zuckerli {
 
@@ -265,8 +268,7 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
   // More rounds improve compression a bit, but are also much slower.
   // TODO: sometimes, it actually makes things worse (???). Might be max
   // chain length.
-  constexpr size_t kNumReferencesRounds = 1;
-  for (size_t round = 0; round < kNumReferencesRounds; round++) {
+  for (size_t round = 0; round < absl::GetFlag(FLAGS_num_rounds); round++) {
     fprintf(stderr, "Selecting references, round %lu%20s\n", round + 1, "");
     std::fill(references.begin(), references.end(), 0);
     float c = 0;
@@ -291,7 +293,7 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
       float base_cost = c;
       saved_costs[i] = 0;
 
-      for (size_t ref = 1; ref < std::min(kSearchNum, i) + 1; ref++) {
+      for (size_t ref = 1; ref < std::min(SearchNum(), i) + 1; ref++) {
         adj_block.clear();
         c = 0;
         ComputeBlocksAndResiduals(g, i, ref, &blocks, &residuals);
@@ -341,7 +343,7 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
                          token_cost);
         float cost = c;
 
-        for (size_t ref = 1; ref < std::min(kSearchNum, i) + 1; ref++) {
+        for (size_t ref = 1; ref < std::min(SearchNum(), i) + 1; ref++) {
           if (chain_length[i - ref] + fwd_chain_length[i] + 1 >
               kMaxChainLength) {
             continue;
@@ -378,7 +380,7 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
       symbol_count[i].resize(256, 0);
     }
 
-    if (round + 1 != kNumReferencesRounds) {
+    if (round + 1 != absl::GetFlag(FLAGS_num_rounds)) {
       fprintf(stderr, "Computing freqs, round %lu%20s\n", round + 1, "");
       for (size_t i = 0; i < N; i++) {
         if (i % 32 == 0) fprintf(stderr, "%lu/%lu\r", i, N);

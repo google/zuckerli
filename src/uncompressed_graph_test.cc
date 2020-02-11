@@ -13,18 +13,21 @@
 // limitations under the License.
 #include "uncompressed_graph.h"
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 namespace zuckerli {
 namespace {
 
 TEST(UncompressedGraphTest, TestInvalidSignature) {
-  EXPECT_DEATH(UncompressedGraph g(TESTDATA "/invalid_signature"),
+  EXPECT_DEATH(UncompressedGraph g(
+                   
+                   TESTDATA "/invalid_signature"),
                "invalid fingerprint");
 }
 
 TEST(UncompressedGraphTest, TestSmallGraph) {
-  UncompressedGraph g(TESTDATA "/small");
+  UncompressedGraph g(
+                      TESTDATA "/small");
 
   ASSERT_EQ(g.size(), 3);
 

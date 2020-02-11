@@ -11,17 +11,18 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <gtest/gtest.h>
-
 #include "decode.h"
 #include "encode.h"
+#include "gtest/gtest.h"
 #include "uncompressed_graph.h"
 
 namespace zuckerli {
 namespace {
 
 TEST(RoundtripTest, TestSmallGraphSequential) {
-  UncompressedGraph g(TESTDATA "/small");
+  UncompressedGraph g(
+                      TESTDATA "/small");
+
   size_t checksum = 0, decoder_checksum = 0;
   std::vector<uint8_t> compresssed =
       EncodeGraph(g, /*allow_random_access=*/false, &checksum);
@@ -30,7 +31,8 @@ TEST(RoundtripTest, TestSmallGraphSequential) {
 }
 
 TEST(RoundtripTest, TestSmallGraphRandomAccess) {
-  UncompressedGraph g(TESTDATA "/small");
+  UncompressedGraph g(
+                      TESTDATA "/small");
   size_t checksum = 0, decoder_checksum = 0;
   std::vector<uint8_t> compresssed =
       EncodeGraph(g, /*allow_random_access=*/true, &checksum);

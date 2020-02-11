@@ -20,6 +20,10 @@
 
 #include "bit_reader.h"
 #include "common.h"
+#include "absl/flags/flag.h"
+
+ABSL_DECLARE_FLAG(int32_t, log2_num_explicit);
+ABSL_DECLARE_FLAG(int32_t, num_token_bits);
 
 namespace zuckerli {
 
@@ -30,24 +34,20 @@ static constexpr size_t kNumSymbols = 1 << kLogNumSymbols;
 // Only context ids smaller than this value are supported.
 static constexpr size_t kMaxNumContexts = 256;
 
-namespace detail {
 // Variable integer encoding scheme that puts bits either in an entropy-coded
 // symbol or as raw bits, depending on the specified configuration.
 // TODO: The behavior of IntegerCoder<0, 0> is a bit weird - both 0
 // and 1 get their own symbol.
-template <size_t log2_num_explicit, size_t num_token_bits>
 class IntegerCoder {
-  static constexpr size_t num_explicit = 1 << log2_num_explicit;
-
  public:
-  static_assert(num_token_bits <= 4, "At most 4 bits in the token");
-  static_assert(num_explicit >= 1 << num_token_bits,
-                "The first non-explicit token should have at least "
-                "num_token_bits+1 bits.");
   static ZKR_INLINE void Encode(uint64_t value, size_t *ZKR_RESTRICT token,
                                 size_t *ZKR_RESTRICT nbits,
                                 size_t *ZKR_RESTRICT bits) {
-    if (value < num_explicit) {
+    size_t log2_num_explicit = absl::GetFlag(FLAGS_log2_num_explicit);
+    size_t num_token_bits = absl::GetFlag(FLAGS_num_token_bits);
+    ZKR_ASSERT(log2_num_explicit >= num_token_bits);
+    ZKR_ASSERT(num_token_bits <= 4);  // At most 4 bits in the token
+    if (value < (1 << log2_num_explicit)) {
       *token = value;
       *nbits = 0;
       *bits = 0;
@@ -55,8 +55,8 @@ class IntegerCoder {
       size_t n = FloorLog2Nonzero(value);
       size_t token_bits =
           (value >> (n - num_token_bits)) & ((1 << num_token_bits) - 1);
-      *token = num_explicit + ((n - log2_num_explicit) << num_token_bits) +
-               token_bits;
+      *token = (1 << log2_num_explicit) +
+               ((n - log2_num_explicit) << num_token_bits) + token_bits;
       ZKR_DASSERT(*token < kNumSymbols);
       *nbits = n - num_token_bits;
       *bits = value & ((1 << (n - num_token_bits)) - 1);
@@ -65,13 +65,15 @@ class IntegerCoder {
   template <typename EntropyCoder>
   static ZKR_INLINE size_t Read(size_t ctx, BitReader *ZKR_RESTRICT reader,
                                 EntropyCoder *ZKR_RESTRICT entropy_coder) {
+    size_t log2_num_explicit = absl::GetFlag(FLAGS_log2_num_explicit);
+    size_t num_token_bits = absl::GetFlag(FLAGS_num_token_bits);
     reader->Refill();
     size_t token = entropy_coder->Read(ctx, reader);
-    if (token < num_explicit) {
+    if (token < (1 << log2_num_explicit)) {
       return token;
     }
     size_t nbits = log2_num_explicit - num_token_bits +
-                   ((token - num_explicit) >> num_token_bits);
+                   ((token - (1 << log2_num_explicit)) >> num_token_bits);
     size_t bits = reader->ReadBits(nbits);
     size_t high_bits =
         (1 << num_token_bits) | (token & ((1 << num_token_bits) - 1));
@@ -92,9 +94,6 @@ class IntegerCoder {
     return token;
   }
 };
-}  // namespace detail
-
-using IntegerCoder = detail::IntegerCoder<4, 1>;
 
 class IntegerData {
  public:

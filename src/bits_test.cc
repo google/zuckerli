@@ -11,14 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <gtest/gtest.h>
-
 #include <random>
 #include <vector>
 
 #include "bit_reader.h"
 #include "bit_writer.h"
 #include "common.h"
+#include "gtest/gtest.h"
 
 namespace zuckerli {
 namespace {

@@ -2,13 +2,14 @@
 
 #include "common.h"
 #include "decode.h"
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+
+ABSL_FLAG(std::string, input_path, "", "Input file path");
 
 int main(int argc, char** argv) {
-  if (argc != 2) {
-    fprintf(stderr, "Usage: %s in.hc\n", argv[0]);
-    return 0;
-  }
-  FILE* in = fopen(argv[1], "r");
+  absl::ParseCommandLine(argc, argv);
+  FILE* in = fopen(absl::GetFlag(FLAGS_input_path).c_str(), "r");
   ZKR_ASSERT(in);
 
   fseek(in, 0, SEEK_END);
