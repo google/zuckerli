@@ -67,6 +67,8 @@ ZKR_INLINE int FloorLog2Nonzero(uint64_t value) {
   return 63 - __builtin_clzll(value);
 }
 
+#define ZKR_HONOR_FLAGS 0
+
 }  // namespace zuckerli
 
 #endif  // ZUCKERLI_COMMON_H

@@ -11,3 +11,5 @@ ABSL_FLAG(int32_t, ref_block, 32,
 
 ABSL_FLAG(int32_t, num_rounds, 1, "Number of rounds for reference finding");
 ABSL_FLAG(bool, allow_random_access, false, "Allow random access");
+ABSL_FLAG(bool, greedy_random_access, false,
+          "Greedy heuristic for random access");

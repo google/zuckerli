@@ -280,6 +280,10 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
       c -= symbol_cost[kResidualBaseContext * kNumSymbols];
     };
 
+    static constexpr size_t kMaxChainLength = 3;
+    bool greedy =
+        allow_random_access && absl::GetFlag(FLAGS_greedy_random_access);
+    std::vector<uint32_t> chain_length(N, 0);
     for (size_t i = 0; i < N; i++) {
       if (i % 32 == 0) fprintf(stderr, "%lu/%lu\r", i, N);
       c = 0;
@@ -292,6 +296,7 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
       saved_costs[i] = 0;
 
       for (size_t ref = 1; ref < std::min(SearchNum(), i) + 1; ref++) {
+        if (greedy && chain_length[i - ref] >= kMaxChainLength) continue;
         adj_block.clear();
         c = 0;
         ComputeBlocksAndResiduals(g, i, ref, &blocks, &residuals);
@@ -306,11 +311,13 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
           saved_costs[i] = base_cost - c;
         }
       }
+      if (references[i] != 0) {
+        chain_length[i] = chain_length[i - references[i]] + 1;
+      }
     }
 
     // Ensure max reference chain length.
-    if (allow_random_access) {
-      static constexpr size_t kMaxChainLength = 3;
+    if (allow_random_access && !greedy) {
       UpdateReferencesForMaxLength(saved_costs, references, kMaxChainLength);
       std::vector<size_t> chain_length(N);
       for (size_t i = 0; i < N; i++) {

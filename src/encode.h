@@ -7,6 +7,7 @@
 
 ABSL_DECLARE_FLAG(int32_t, num_rounds);
 ABSL_DECLARE_FLAG(bool, allow_random_access);
+ABSL_DECLARE_FLAG(bool, greedy_random_access);
 
 namespace zuckerli {
 std::vector<uint8_t> EncodeGraph(const UncompressedGraph& g,

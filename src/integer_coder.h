@@ -43,8 +43,13 @@ class IntegerCoder {
   static ZKR_INLINE void Encode(uint64_t value, size_t *ZKR_RESTRICT token,
                                 size_t *ZKR_RESTRICT nbits,
                                 size_t *ZKR_RESTRICT bits) {
+#if ZKR_HONOR_FLAGS
     size_t log2_num_explicit = absl::GetFlag(FLAGS_log2_num_explicit);
     size_t num_token_bits = absl::GetFlag(FLAGS_num_token_bits);
+#else
+    size_t log2_num_explicit = 4;
+    size_t num_token_bits = 1;
+#endif
     ZKR_ASSERT(log2_num_explicit >= num_token_bits);
     ZKR_ASSERT(num_token_bits <= 4);  // At most 4 bits in the token
     if (value < (1 << log2_num_explicit)) {
@@ -65,8 +70,13 @@ class IntegerCoder {
   template <typename EntropyCoder>
   static ZKR_INLINE size_t Read(size_t ctx, BitReader *ZKR_RESTRICT reader,
                                 EntropyCoder *ZKR_RESTRICT entropy_coder) {
+#if ZKR_HONOR_FLAGS
     size_t log2_num_explicit = absl::GetFlag(FLAGS_log2_num_explicit);
     size_t num_token_bits = absl::GetFlag(FLAGS_num_token_bits);
+#else
+    size_t log2_num_explicit = 4;
+    size_t num_token_bits = 1;
+#endif
     reader->Refill();
     size_t token = entropy_coder->Read(ctx, reader);
     if (token < (1 << log2_num_explicit)) {

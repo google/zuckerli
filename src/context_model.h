@@ -12,8 +12,12 @@ ABSL_DECLARE_FLAG(int32_t, ref_block);
 namespace zuckerli {
 
 ZKR_INLINE size_t SearchNum() {
+#if ZKR_HONOR_FLAGS
   ZKR_ASSERT(absl::GetFlag(FLAGS_ref_block) <= 64);
   return absl::GetFlag(FLAGS_ref_block);
+#else
+  return 32;
+#endif
 };
 ZKR_INLINE size_t NumAdjLists() { return SearchNum() + 1; };
 
