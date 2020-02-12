@@ -15,8 +15,6 @@
 #include "absl/flags/flag.h"
 #include "uncompressed_graph.h"
 
-ABSL_FLAG(int32_t, num_rounds, 1, "Number of rounds for reference finding");
-
 namespace zuckerli {
 
 namespace {

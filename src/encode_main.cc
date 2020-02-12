@@ -7,7 +7,6 @@
 
 ABSL_FLAG(std::string, input_path, "", "Input file path");
 ABSL_FLAG(std::string, output_path, "", "Output file path");
-ABSL_FLAG(bool, allow_random_access, false, "Allow random access");
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);

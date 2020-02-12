@@ -2,7 +2,11 @@
 #define ZUCKERLI_ENCODE_H
 #include <vector>
 
+#include "absl/flags/flag.h"
 #include "uncompressed_graph.h"
+
+ABSL_DECLARE_FLAG(int32_t, num_rounds);
+ABSL_DECLARE_FLAG(bool, allow_random_access);
 
 namespace zuckerli {
 std::vector<uint8_t> EncodeGraph(const UncompressedGraph& g,
