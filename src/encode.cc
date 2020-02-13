@@ -29,9 +29,9 @@ void ComputeBlocksAndResiduals(const UncompressedGraph &g, size_t i, size_t ref,
   size_t rpos = 0;
   bool is_same = true;
   blocks->push_back(0);
-  while (ipos < g.degree(i) && rpos < g.degree(i - ref)) {
-    size_t a = g.neighs(i)[ipos];
-    size_t b = g.neighs(i - ref)[rpos];
+  while (ipos < g.Degree(i) && rpos < g.Degree(i - ref)) {
+    size_t a = g.Neighbours(i)[ipos];
+    size_t b = g.Neighbours(i - ref)[rpos];
     if (a == b) {
       ipos++;
       rpos++;
@@ -52,9 +52,9 @@ void ComputeBlocksAndResiduals(const UncompressedGraph &g, size_t i, size_t ref,
       rpos++;
     }
   }
-  if (ipos != g.degree(i)) {
-    for (size_t j = ipos; j < g.degree(i); j++) {
-      residuals->push_back(g.neighs(i)[j]);
+  if (ipos != g.Degree(i)) {
+    for (size_t j = ipos; j < g.Degree(i); j++) {
+      residuals->push_back(g.Neighbours(i)[j]);
     }
   }
   size_t pos = 0;
@@ -66,7 +66,7 @@ void ComputeBlocksAndResiduals(const UncompressedGraph &g, size_t i, size_t ref,
       size_t skip = (*blocks)[k + 1];
       (*blocks)[cur - 1] += add + skip;
       for (size_t j = 0; j < add; j++) {
-        residuals->push_back(g.neighs(i)[pos + j]);
+        residuals->push_back(g.Neighbours(i)[pos + j]);
       }
       pos += add + skip;
       k++;
@@ -77,7 +77,7 @@ void ComputeBlocksAndResiduals(const UncompressedGraph &g, size_t i, size_t ref,
     }
   }
   std::sort(residuals->begin(), residuals->end());
-  if (rpos == g.degree(i - ref) || !is_same) {
+  if (rpos == g.Degree(i - ref) || !is_same) {
     blocks->pop_back();
   }
 }
@@ -100,7 +100,7 @@ void ProcessBlocks(const std::vector<uint32_t> &blocks,
     cb(ctx, b);
     if (copy) {
       for (size_t k = 0; k < blocks[j]; k++) {
-        copy_cb(g.neighs(i - reference)[pos++]);
+        copy_cb(g.Neighbours(i - reference)[pos++]);
       }
     } else {
       pos += blocks[j];
@@ -108,8 +108,8 @@ void ProcessBlocks(const std::vector<uint32_t> &blocks,
     copy = !copy;
   }
   if (copy) {
-    for (size_t k = pos; k < g.neighs(i - reference).size(); k++) {
-      copy_cb(g.neighs(i - reference)[pos++]);
+    for (size_t k = pos; k < g.Neighbours(i - reference).size(); k++) {
+      copy_cb(g.Neighbours(i - reference)[pos++]);
     }
   }
 }
@@ -288,7 +288,7 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
       if (i % 32 == 0) fprintf(stderr, "%lu/%lu\r", i, N);
       c = 0;
       // No block copying.
-      residuals.assign(g.neighs(i).begin(), g.neighs(i).end());
+      residuals.assign(g.Neighbours(i).begin(), g.Neighbours(i).end());
       ProcessResiduals(residuals, i, adj_block, allow_random_access, rle_undo,
                        token_cost);
       float cost = c;
@@ -343,7 +343,7 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
         }
         c = 0;
         // No block copying
-        residuals.assign(g.neighs(i).begin(), g.neighs(i).end());
+        residuals.assign(g.Neighbours(i).begin(), g.Neighbours(i).end());
         ProcessResiduals(residuals, i, adj_block, allow_random_access, rle_undo,
                          token_cost);
         float cost = c;
@@ -391,7 +391,7 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
         if (i % 32 == 0) fprintf(stderr, "%lu/%lu\r", i, N);
         adj_block.clear();
         if (references[i] == 0) {
-          residuals.assign(g.neighs(i).begin(), g.neighs(i).end());
+          residuals.assign(g.Neighbours(i).begin(), g.Neighbours(i).end());
         } else {
           ComputeBlocksAndResiduals(g, i, references[i], &blocks, &residuals);
           ProcessBlocks(
@@ -403,8 +403,8 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
       }
 
       for (size_t i = 0; i < kNumContexts; i++) {
-        float total_symbols =
-            std::accumulate(symbol_count[i].begin(), symbol_count[i].end(), 0);
+        float total_symbols = std::accumulate(symbol_count[i].begin(),
+                                              symbol_count[i].end(), 0ul);
         if (total_symbols < 0.5f) {
           continue;
         }
@@ -417,6 +417,9 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
     }
   }
 
+  // Holds the index of every node degree delta in `tokens` .
+  std::vector<size_t> node_degree_indices;
+
   size_t last_reference = 0;
   fprintf(stderr, "Compressing%20s\n", "");
   for (size_t i = 0; i < N; i++) {
@@ -424,22 +427,24 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
     fflush(stderr);
     if ((allow_random_access && i % kDegreeReferenceChunkSize == 0) || i == 0) {
       last_reference = 0;
-      last_degree_delta = g.degree(i);
+      last_degree_delta = g.Degree(i);
+      node_degree_indices.push_back(tokens.Size());
       tokens.Add(kFirstDegreeContext, last_degree_delta);
     } else {
       size_t ctx = DegreeContext(last_degree_delta);
-      last_degree_delta = PackSigned(g.degree(i) - ref);
+      last_degree_delta = PackSigned(g.Degree(i) - ref);
+      node_degree_indices.push_back(tokens.Size());
       tokens.Add(ctx, last_degree_delta);
     }
-    ref = g.degree(i);
-    if (g.degree(i) == 0) {
+    ref = g.Degree(i);
+    if (g.Degree(i) == 0) {
       continue;
     }
     size_t reference = references[i];
     std::vector<uint32_t> residuals;
     std::vector<uint32_t> blocks;
     if (reference == 0) {
-      residuals.assign(g.neighs(i).begin(), g.neighs(i).end());
+      residuals.assign(g.Neighbours(i).begin(), g.Neighbours(i).end());
     } else {
       ComputeBlocksAndResiduals(g, i, reference, &blocks, &residuals);
     }
@@ -461,14 +466,14 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
         [&](size_t ctx, size_t v) { tokens.Add(ctx, v); });
   }
   for (size_t i = 0; i < N; i++) {
-    edges += g.degree(i);
-    for (size_t j = 0; j < g.degree(i); j++) {
-      chksum = Checksum(chksum, i, g.neighs(i)[j]);
+    edges += g.Degree(i);
+    for (size_t j = 0; j < g.Degree(i); j++) {
+      chksum = Checksum(chksum, i, g.Neighbours(i)[j]);
     }
   }
 
   if (allow_random_access) {
-    HuffmanEncode(tokens, kNumContexts, &writer);
+    HuffmanEncode(tokens, kNumContexts, &writer, node_degree_indices);
   } else {
     ANSEncode(tokens, kNumContexts, &writer);
   }

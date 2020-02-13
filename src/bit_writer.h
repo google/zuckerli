@@ -27,6 +27,8 @@ class BitWriter {
 
   void Write(size_t nbits, size_t bits);
 
+  size_t NumBitsWritten() { return bits_written_; }
+
   // Required before calls to write.
   void Reserve(size_t nbits);
 

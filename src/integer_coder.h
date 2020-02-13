@@ -13,9 +13,9 @@
 // limitations under the License.
 #ifndef ZUCKERLI_INTEGER_CODER_H
 #define ZUCKERLI_INTEGER_CODER_H
-#include <stdio.h>
-#include <stdlib.h>
-
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 #include "bit_reader.h"
@@ -107,6 +107,10 @@ class IntegerCoder {
 
 class IntegerData {
  public:
+  size_t Size() {
+    ZKR_ASSERT(ctxs_.size() == values_.size());
+    return values_.size();
+  }
   void Add(uint32_t ctx, uint32_t val) {
     ZKR_DASSERT(ctx < kMaxNumContexts);
     ctxs_.push_back(ctx);

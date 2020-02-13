@@ -63,13 +63,17 @@ class BitReader {
   ZKR_INLINE void Advance(size_t nbits) {
     bits_in_buf_ -= nbits;
     buf_ >>= nbits;
+    nbits_read_ += nbits;
   }
+
+  ZKR_INLINE size_t NumBitsRead() { return nbits_read_; }
 
  private:
   uint64_t buf_{0};
   size_t bits_in_buf_{0};
   const uint8_t *ZKR_RESTRICT next_byte_;
   const uint8_t *ZKR_RESTRICT end_minus_8_;
+  size_t nbits_read_ = 0;
   void BoundsCheckedRefill();
 };
 

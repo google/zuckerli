@@ -31,17 +31,17 @@ TEST(UncompressedGraphTest, TestSmallGraph) {
 
   ASSERT_EQ(g.size(), 3);
 
-  ASSERT_EQ(g.degree(0), 2);
-  ASSERT_EQ(g.degree(1), 2);
-  ASSERT_EQ(g.degree(2), 1);
+  ASSERT_EQ(g.Degree(0), 2);
+  ASSERT_EQ(g.Degree(1), 2);
+  ASSERT_EQ(g.Degree(2), 1);
 
-  EXPECT_EQ(g.neighs(0)[0], 0);
-  EXPECT_EQ(g.neighs(0)[1], 1);
+  EXPECT_EQ(g.Neighbours(0)[0], 0);
+  EXPECT_EQ(g.Neighbours(0)[1], 1);
 
-  EXPECT_EQ(g.neighs(1)[0], 1);
-  EXPECT_EQ(g.neighs(1)[1], 2);
+  EXPECT_EQ(g.Neighbours(1)[0], 1);
+  EXPECT_EQ(g.Neighbours(1)[1], 2);
 
-  EXPECT_EQ(g.neighs(2)[0], 0);
+  EXPECT_EQ(g.Neighbours(2)[0], 0);
 }
 
 }  // namespace

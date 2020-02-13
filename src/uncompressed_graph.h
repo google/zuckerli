@@ -80,12 +80,12 @@ class UncompressedGraph {
       (sizeof(uint64_t) << 4) | sizeof(uint32_t);
   UncompressedGraph(const std::string &file);
   ZKR_INLINE uint32_t size() const { return N; }
-  ZKR_INLINE uint32_t degree(size_t i) const {
+  ZKR_INLINE uint32_t Degree(size_t i) const {
     ZKR_DASSERT(i < size());
     return uint32_t(neigh_start_[i + 1] - neigh_start_[i]);
   }
-  ZKR_INLINE span<const uint32_t> neighs(size_t i) const {
-    return span<const uint32_t>(neighs_ + neigh_start_[i], degree(i));
+  ZKR_INLINE span<const uint32_t> Neighbours(size_t i) const {
+    return span<const uint32_t>(neighs_ + neigh_start_[i], Degree(i));
   }
 
  private:

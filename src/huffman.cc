@@ -186,8 +186,13 @@ void ComputeSymbolNumBits(const std::vector<size_t>& histogram,
 
 }  // namespace
 
-void HuffmanEncode(const IntegerData& integers, size_t num_contexts,
-                   BitWriter* writer) {
+std::vector<size_t> HuffmanEncode(
+    const IntegerData& integers, size_t num_contexts, BitWriter* writer,
+    const std::vector<size_t>& node_degree_indices) {
+  std::vector<size_t> node_degree_bit_pos;
+  node_degree_bit_pos.reserve(node_degree_indices.size());
+  size_t current_node = 0;
+
   // Compute histograms.
   std::vector<std::vector<size_t>> histograms;
   histograms.resize(num_contexts);
@@ -205,9 +210,15 @@ void HuffmanEncode(const IntegerData& integers, size_t num_contexts,
   }
 
   // Pre-compute the number of bits needed.
+  size_t nbits_histo = writer->NumBitsWritten();
   size_t total_nbits = 0;
   integers.ForEach([&](size_t ctx, size_t token, size_t nextrabits,
                        size_t extrabits, size_t i) {
+    if (current_node < node_degree_indices.size() &&
+        i == node_degree_indices[current_node]) {
+      node_degree_bit_pos.push_back(total_nbits + nbits_histo);
+      ++current_node;
+    }
     total_nbits += info[ctx][token].nbits;
     total_nbits += nextrabits;
   });
@@ -220,6 +231,8 @@ void HuffmanEncode(const IntegerData& integers, size_t num_contexts,
     writer->Write(info[ctx][token].nbits, info[ctx][token].bits);
     writer->Write(nextrabits, extrabits);
   });
+
+  return node_degree_bit_pos;
 }
 
 bool HuffmanReader::Init(size_t num_contexts, BitReader* ZKR_RESTRICT br) {

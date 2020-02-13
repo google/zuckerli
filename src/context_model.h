@@ -19,7 +19,7 @@ ZKR_INLINE size_t SearchNum() {
   return 32;
 #endif
 };
-ZKR_INLINE size_t NumAdjLists() { return SearchNum() + 1; };
+ZKR_INLINE size_t MaxNodesBackwards() { return SearchNum() + 1; };
 
 static constexpr size_t kFirstDegreeContext = 0;
 static constexpr size_t kDegreeBaseContext = 1;

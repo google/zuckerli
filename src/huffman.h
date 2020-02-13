@@ -14,6 +14,8 @@
 #ifndef ZUCKERLI_HUFFMAN_H
 #define ZUCKERLI_HUFFMAN_H
 
+#include <cstddef>
+
 #include "bit_writer.h"
 #include "integer_coder.h"
 
@@ -28,8 +30,10 @@ struct HuffmanDecoderInfo {
 
 // Encodes the given sequence of integers into a BitWriter. The context id
 // for each integer must be in the range [0, num_contexts).
-void HuffmanEncode(const IntegerData& integers, size_t num_contexts,
-                   BitWriter* writer);
+// Returns a vector of sorted indices of bits where nodes start.
+std::vector<size_t> HuffmanEncode(
+    const IntegerData& integers, size_t num_contexts, BitWriter* writer,
+    const std::vector<size_t>& node_degree_indices);
 
 // Class to read Huffman-encoded symbols from a stream.
 class HuffmanReader {
