@@ -79,7 +79,7 @@ struct AliasTable {
 // Encodes the given sequence of integers into a BitWriter. The context id
 // for each integer must be in the range [0, num_contexts).
 void ANSEncode(const IntegerData& integers, size_t num_contexts,
-               BitWriter* writer);
+               BitWriter* writer, std::vector<float>* bits_per_ctx);
 
 // Class to read ANS-encoded symbols from a stream.
 class ANSReader {

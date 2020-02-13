@@ -15,6 +15,9 @@
 #include "absl/flags/flag.h"
 #include "uncompressed_graph.h"
 
+ABSL_FLAG(bool, print_bits_breakdown, false,
+          "Print a breakdown of where bits are spent");
+
 namespace zuckerli {
 
 namespace {
@@ -472,13 +475,51 @@ std::vector<uint8_t> EncodeGraph(const UncompressedGraph &g,
     }
   }
 
+  std::vector<float> bits_per_ctx;
   if (allow_random_access) {
-    HuffmanEncode(tokens, kNumContexts, &writer, node_degree_indices);
+    HuffmanEncode(tokens, kNumContexts, &writer, node_degree_indices,
+                  &bits_per_ctx);
   } else {
-    ANSEncode(tokens, kNumContexts, &writer);
+    ANSEncode(tokens, kNumContexts, &writer, &bits_per_ctx);
   }
   auto data = std::move(writer).GetData();
   auto stop = std::chrono::high_resolution_clock::now();
+
+  if (absl::GetFlag(FLAGS_print_bits_breakdown)) {
+    float degree_bits = 0;
+    for (size_t i = kFirstDegreeContext; i < kReferenceContextBase; i++) {
+      degree_bits += bits_per_ctx[i];
+    }
+    float reference_bits = 0;
+    for (size_t i = kReferenceContextBase; i < kBlockCountContext; i++) {
+      reference_bits += bits_per_ctx[i];
+    }
+    float block_bits = 0;
+    for (size_t i = kBlockCountContext; i < kFirstResidualBaseContext; i++) {
+      block_bits += bits_per_ctx[i];
+    }
+    float first_residual_bits = 0;
+    for (size_t i = kFirstResidualBaseContext; i < kResidualBaseContext; i++) {
+      first_residual_bits += bits_per_ctx[i];
+    }
+    float residual_bits = 0;
+    for (size_t i = kResidualBaseContext; i < kNumContexts; i++) {
+      residual_bits += bits_per_ctx[i];
+    }
+    float total_bits = data.size() * 8.0f;
+    fprintf(stderr, "Degree bits:         %10.2f [%5.2f bits/edge]\n",
+            degree_bits, degree_bits / edges);
+    fprintf(stderr, "Reference bits:      %10.2f [%5.2f bits/edge]\n",
+            reference_bits, reference_bits / edges);
+    fprintf(stderr, "Block bits:          %10.2f [%5.2f bits/edge]\n",
+            block_bits, block_bits / edges);
+    fprintf(stderr, "First residual bits: %10.2f [%5.2f bits/edge]\n",
+            first_residual_bits, first_residual_bits / edges);
+    fprintf(stderr, "Residual bits:       %10.2f [%5.2f bits/edge]\n",
+            residual_bits, residual_bits / edges);
+    fprintf(stderr, "Total bits:          %10.2f [%5.2f bits/edge]\n",
+            total_bits, total_bits / edges);
+  }
 
   float elapsed =
       std::chrono::duration_cast<std::chrono::microseconds>(stop - start)

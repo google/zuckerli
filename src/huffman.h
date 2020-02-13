@@ -33,7 +33,8 @@ struct HuffmanDecoderInfo {
 // Returns a vector of sorted indices of bits where nodes start.
 std::vector<size_t> HuffmanEncode(
     const IntegerData& integers, size_t num_contexts, BitWriter* writer,
-    const std::vector<size_t>& node_degree_indices);
+    const std::vector<size_t>& node_degree_indices,
+    std::vector<float>* bits_per_ctx);
 
 // Class to read Huffman-encoded symbols from a stream.
 class HuffmanReader {

@@ -188,7 +188,8 @@ void ComputeSymbolNumBits(const std::vector<size_t>& histogram,
 
 std::vector<size_t> HuffmanEncode(
     const IntegerData& integers, size_t num_contexts, BitWriter* writer,
-    const std::vector<size_t>& node_degree_indices) {
+    const std::vector<size_t>& node_degree_indices,
+    std::vector<float>* bits_per_ctx) {
   std::vector<size_t> node_degree_bit_pos;
   node_degree_bit_pos.reserve(node_degree_indices.size());
   size_t current_node = 0;
@@ -199,6 +200,7 @@ std::vector<size_t> HuffmanEncode(
   integers.Histograms(&histograms);
 
   writer->Reserve(num_contexts * kNumSymbols * 4);
+  bits_per_ctx->resize(num_contexts);
 
   // Compute and encode symbol length and bits for each symbol.
   ZKR_ASSERT(histograms.size() == num_contexts);
@@ -230,6 +232,7 @@ std::vector<size_t> HuffmanEncode(
                        size_t extrabits, size_t i) {
     writer->Write(info[ctx][token].nbits, info[ctx][token].bits);
     writer->Write(nextrabits, extrabits);
+    (*bits_per_ctx)[ctx] += nextrabits + info[ctx][token].nbits;
   });
 
   return node_degree_bit_pos;

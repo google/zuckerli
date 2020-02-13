@@ -15,6 +15,7 @@
 #include "ans.h"
 
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 
 #include "bit_reader.h"
@@ -195,13 +196,14 @@ struct ANSEncSymbolInfo {
 }  // namespace
 
 void ANSEncode(const IntegerData& integers, size_t num_contexts,
-               BitWriter* writer) {
+               BitWriter* writer, std::vector<float>* bits_per_ctx) {
   // Compute histograms.
   std::vector<std::vector<size_t>> histograms;
   histograms.resize(num_contexts);
   integers.Histograms(&histograms);
 
   writer->Reserve(num_contexts * kNumSymbols * (1 + kANSNumBits));
+  bits_per_ctx->resize(num_contexts);
 
   // Normalize and encode histograms and compute alias tables.
   ZKR_ASSERT(histograms.size() == num_contexts);
@@ -233,6 +235,11 @@ void ANSEncode(const IntegerData& integers, size_t num_contexts,
     }
   }
 
+  float kProbBits[(1 << kANSNumBits) + 1];
+  for (size_t i = 1; i <= (1 << kANSNumBits); i++) {
+    kProbBits[i] = -std::log2(i * (1.0f / (1 << kANSNumBits)));
+  }
+
   // The decoder should output ans_output_bits[i] when reaching index
   // output_idx[i].
   std::vector<uint16_t> ans_output_bits;
@@ -243,20 +250,21 @@ void ANSEncode(const IntegerData& integers, size_t num_contexts,
   size_t ans_state = kANSSignature;
 
   // Iterate through tokens **in reverse order** to compute state updates.
-  integers.ForEachReversed(
-      [&](size_t ctx, size_t token, size_t nbits, size_t bits, size_t i) {
-        extra_bits += nbits;
-        const ANSEncSymbolInfo& info = enc_symbol_info[ctx][token];
-        // Flush state.
-        if ((ans_state >> (32 - kANSNumBits)) >= info.freq) {
-          ans_output_bits.push_back(ans_state & 0xFFFF);
-          output_idx.push_back(i);
-          ans_state >>= 16;
-        }
-        uint32_t v = (ans_state * info.ifreq) >> kReciprocalPrecision;
-        uint32_t offset = info.reverse_map[ans_state - v * info.freq];
-        ans_state = (v << kANSNumBits) + offset;
-      });
+  integers.ForEachReversed([&](size_t ctx, size_t token, size_t nbits,
+                               size_t bits, size_t i) {
+    (*bits_per_ctx)[ctx] += kProbBits[enc_symbol_info[ctx][token].freq] + nbits;
+    extra_bits += nbits;
+    const ANSEncSymbolInfo& info = enc_symbol_info[ctx][token];
+    // Flush state.
+    if ((ans_state >> (32 - kANSNumBits)) >= info.freq) {
+      ans_output_bits.push_back(ans_state & 0xFFFF);
+      output_idx.push_back(i);
+      ans_state >>= 16;
+    }
+    uint32_t v = (ans_state * info.ifreq) >> kReciprocalPrecision;
+    uint32_t offset = info.reverse_map[ans_state - v * info.freq];
+    ans_state = (v << kANSNumBits) + offset;
+  });
 
   writer->Reserve(extra_bits + ans_output_bits.size() * 16 + 32);
   writer->Write(32, ans_state);
