@@ -1,14 +1,14 @@
-#include "third_party/zuckerli/src/compressed_graph.h"
+#include "compressed_graph.h"
 
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
 
-#include "third_party/zuckerli/src/common.h"
-#include "third_party/zuckerli/src/context_model.h"
-#include "third_party/zuckerli/src/decode.h"
-#include "third_party/zuckerli/src/integer_coder.h"
+#include "common.h"
+#include "context_model.h"
+#include "decode.h"
+#include "integer_coder.h"
 
 namespace zuckerli {
 
@@ -24,7 +24,7 @@ CompressedGraph::CompressedGraph(const std::string& file) {
   ZKR_ASSERT(fread(compressed_.data(), 1, len, in) == len);
   if (compressed_.empty()) ZKR_ABORT("Empty file");
 
-  BitReader reader = BitReader(compressed_.data(), compressed_.size());
+  BitReader reader(compressed_.data(), compressed_.size());
   num_nodes_ = reader.ReadBits(48);
   bool allow_random_access = reader.ReadBits(1);
   if (!allow_random_access) {
@@ -41,18 +41,16 @@ CompressedGraph::CompressedGraph(const std::string& file) {
 }
 
 uint32_t CompressedGraph::ReadDegreeBits(uint32_t node_id, size_t context) {
-  BitReader bit_reader =
-      BitReader(compressed_.data() + node_start_indices_[node_id] / 8,
-                compressed_.size());
+  BitReader bit_reader(compressed_.data() + node_start_indices_[node_id] / 8,
+                       compressed_.size());
   bit_reader.ReadBits(node_start_indices_[node_id] % 8);
   return zuckerli::IntegerCoder::Read(context, &bit_reader, &huff_reader_);
 }
 
 std::pair<uint32_t, size_t> CompressedGraph::ReadDegreeAndRefBits(
     uint32_t node_id, size_t context, size_t last_reference_offset) {
-  BitReader bit_reader =
-      BitReader(compressed_.data() + node_start_indices_[node_id] / 8,
-                compressed_.size());
+  BitReader bit_reader(compressed_.data() + node_start_indices_[node_id] / 8,
+                       compressed_.size());
   bit_reader.ReadBits(node_start_indices_[node_id] % 8);
   uint32_t degree =
       zuckerli::IntegerCoder::Read(context, &bit_reader, &huff_reader_);
@@ -82,9 +80,8 @@ uint32_t CompressedGraph::Degree(size_t node_id) {
 }
 
 std::vector<uint32_t> CompressedGraph::Neighbours(size_t node_id) {
-  BitReader bit_reader =
-      BitReader(compressed_.data() + node_start_indices_[node_id] / 8,
-                compressed_.size());
+  BitReader bit_reader(compressed_.data() + node_start_indices_[node_id] / 8,
+                       compressed_.size());
   bit_reader.ReadBits(node_start_indices_[node_id] % 8);
   std::vector<uint32_t> neighbours;
 

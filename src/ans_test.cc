@@ -41,7 +41,8 @@ TEST(ANSTest, TestRoundtrip) {
   }
 
   BitWriter writer;
-  ANSEncode(data, kNumContexts, &writer);
+  std::vector<float> unused_bits_per_ctx;
+  ANSEncode(data, kNumContexts, &writer, &unused_bits_per_ctx);
 
   std::vector<uint8_t> encoded = std::move(writer).GetData();
   BitReader reader(encoded.data(), encoded.size());

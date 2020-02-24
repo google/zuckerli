@@ -19,6 +19,8 @@ add_compile_options(-fcolor-diagnostics -Wall)
 
 find_package(Threads REQUIRED)
 
+add_subdirectory(abseil-cpp)
+
 include(CheckIPOSupported)
 check_ipo_supported(RESULT supported OUTPUT error)
 if( supported )
@@ -36,8 +38,11 @@ include(GoogleTest)
 add_library(
   common
   src/common.cc
+  src/flags.cc
   src/common.h
 )
+
+target_link_libraries(common absl::flags absl::flags_parse)
 
 add_executable(common_test src/common_test.cc)
 target_link_libraries(common_test common gmock gtest_main gtest Threads::Threads)
@@ -93,7 +98,6 @@ add_executable(ans_test src/ans_test.cc)
 target_link_libraries(ans_test ans gmock gtest_main gtest Threads::Threads)
 gtest_discover_tests(ans_test)
 
-
 add_library(
   uncompressed_graph
   src/uncompressed_graph.cc
@@ -108,17 +112,25 @@ gtest_discover_tests(uncompressed_graph_test)
 target_compile_definitions(uncompressed_graph_test PRIVATE
         -DTESTDATA="${CMAKE_CURRENT_SOURCE_DIR}/testdata")
 
-add_executable(traversal_main src/traversal_main.cc)
-target_link_libraries(traversal_main uncompressed_graph Threads::Threads)
-
-target_compile_definitions(traversal_main PRIVATE
-        -DTESTDATA="${CMAKE_CURRENT_SOURCE_DIR}/testdata")
+add_executable(traversal_main_uncompressed src/traversal_main_uncompressed.cc)
+target_link_libraries(traversal_main_uncompressed uncompressed_graph Threads::Threads)
 
 add_library(encode src/encode.h src/encode.cc src/context_model.h src/checksum.h)
 target_link_libraries(encode ans huffman uncompressed_graph)
 
 add_library(decode src/decode.h src/context_model.h src/checksum.h)
 target_link_libraries(decode ans huffman)
+
+add_library(
+  compressed_graph
+  src/compressed_graph.cc
+  src/compressed_graph.h
+)
+target_link_libraries(compressed_graph decode)
+
+add_executable(traversal_main_compressed src/traversal_main_compressed.cc)
+target_link_libraries(traversal_main_compressed compressed_graph Threads::Threads)
+
 
 add_executable(roundtrip_test src/roundtrip_test.cc)
 target_link_libraries(roundtrip_test encode decode uncompressed_graph gmock gtest_main gtest Threads::Threads)
