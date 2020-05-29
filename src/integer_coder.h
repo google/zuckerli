@@ -40,54 +40,71 @@ static constexpr size_t kMaxNumContexts = 256;
 // and 1 get their own symbol.
 class IntegerCoder {
  public:
+  static ZKR_INLINE size_t Log2NumExplicit() {
+#if ZKR_HONOR_FLAGS
+    return absl::GetFlag(FLAGS_log2_num_explicit);
+#else
+    return 4;
+#endif
+  }
+  static ZKR_INLINE size_t NumTokenMSB() {
+#if ZKR_HONOR_FLAGS
+    return absl::GetFlag(FLAGS_num_token_bits);
+#else
+    return 2;
+#endif
+  }
+  static ZKR_INLINE size_t NumTokenLSB() {
+#if ZKR_HONOR_FLAGS
+    return absl::GetFlag(FLAGS_num_token_lsb);
+#else
+    return 1;
+#endif
+  }
   static ZKR_INLINE void Encode(uint64_t value, size_t *ZKR_RESTRICT token,
                                 size_t *ZKR_RESTRICT nbits,
                                 size_t *ZKR_RESTRICT bits) {
-#if ZKR_HONOR_FLAGS
-    size_t log2_num_explicit = absl::GetFlag(FLAGS_log2_num_explicit);
-    size_t num_token_bits = absl::GetFlag(FLAGS_num_token_bits);
-#else
-    size_t log2_num_explicit = 4;
-    size_t num_token_bits = 1;
-#endif
-    ZKR_ASSERT(log2_num_explicit >= num_token_bits);
-    ZKR_ASSERT(num_token_bits <= 4);  // At most 4 bits in the token
-    if (value < (1 << log2_num_explicit)) {
+    uint32_t split_exponent = Log2NumExplicit();
+    uint32_t split_token = 1 << split_exponent;
+    uint32_t msb_in_token = NumTokenMSB();
+    uint32_t lsb_in_token = NumTokenLSB();
+    ZKR_ASSERT(split_exponent >= lsb_in_token + msb_in_token);
+    if (value < split_token) {
       *token = value;
       *nbits = 0;
       *bits = 0;
     } else {
-      size_t n = FloorLog2Nonzero(value);
-      size_t token_bits =
-          (value >> (n - num_token_bits)) & ((1 << num_token_bits) - 1);
-      *token = (1 << log2_num_explicit) +
-               ((n - log2_num_explicit) << num_token_bits) + token_bits;
-      ZKR_DASSERT(*token < kNumSymbols);
-      *nbits = n - num_token_bits;
-      *bits = value & ((1 << (n - num_token_bits)) - 1);
+      uint32_t n = FloorLog2Nonzero(value);
+      uint32_t m = value - (1 << n);
+      *token = split_token +
+               ((n - split_exponent) << (msb_in_token + lsb_in_token)) +
+               ((m >> (n - msb_in_token)) << lsb_in_token) +
+               (m & ((1 << lsb_in_token) - 1));
+      *nbits = n - msb_in_token - lsb_in_token;
+      *bits = (value >> lsb_in_token) & ((1 << *nbits) - 1);
     }
   }
   template <typename EntropyCoder>
   static ZKR_INLINE size_t Read(size_t ctx, BitReader *ZKR_RESTRICT reader,
                                 EntropyCoder *ZKR_RESTRICT entropy_coder) {
-#if ZKR_HONOR_FLAGS
-    size_t log2_num_explicit = absl::GetFlag(FLAGS_log2_num_explicit);
-    size_t num_token_bits = absl::GetFlag(FLAGS_num_token_bits);
-#else
-    size_t log2_num_explicit = 4;
-    size_t num_token_bits = 1;
-#endif
+    uint32_t split_exponent = Log2NumExplicit();
+    uint32_t split_token = 1 << split_exponent;
+    uint32_t msb_in_token = NumTokenMSB();
+    uint32_t lsb_in_token = NumTokenLSB();
     reader->Refill();
     size_t token = entropy_coder->Read(ctx, reader);
-    if (token < (1 << log2_num_explicit)) {
-      return token;
-    }
-    size_t nbits = log2_num_explicit - num_token_bits +
-                   ((token - (1 << log2_num_explicit)) >> num_token_bits);
-    size_t bits = reader->ReadBits(nbits);
-    size_t high_bits =
-        (1 << num_token_bits) | (token & ((1 << num_token_bits) - 1));
-    return (high_bits << nbits) | bits;
+    if (token < split_token) return token;
+    uint32_t nbits = split_exponent - (msb_in_token + lsb_in_token) +
+                     ((token - split_token) >> (msb_in_token + lsb_in_token));
+    uint32_t low = token & ((1 << lsb_in_token) - 1);
+    token >>= lsb_in_token;
+    const size_t bits = reader->ReadBits(nbits);
+    size_t ret = (((((1 << msb_in_token) | (token & ((1 << msb_in_token) - 1)))
+                    << nbits) |
+                   bits)
+                  << lsb_in_token) |
+                 low;
+    return ret;
   }
   // sym_cost is such that position `ctx*kNumSymbols+token` holds the cost of
   // encoding `token` in the context `ctx`.
@@ -155,6 +172,7 @@ class IntegerData {
   void Histograms(std::vector<std::vector<size_t>> *histo) const {
     ForEach([histo](size_t ctx, size_t token, size_t nbits, size_t bits,
                     size_t idx) {
+      ZKR_ASSERT(token < kNumSymbols);
       if (histo->size() <= ctx) {
         histo->resize(ctx + 1);
       }

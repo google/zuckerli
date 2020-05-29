@@ -37,11 +37,19 @@ static ZKR_INLINE uint8_t FlipByte(const uint8_t x) {
   return (kNibbleLut[x & 0xF] << 4) | kNibbleLut[x >> 4];
 }
 
-// Very simple encoding: for each symbol, 1 bit for presence/absence, and 3 bits
-// for symbol length if present.
+// Very simple encoding: number of symbols (8 bits) followed by, for each
+// symbol, 1 bit for presence/absence, and 3 bits for symbol length if present.
+// TODO: short encoding for empty ctxs, RLE for missing symbols.
 void EncodeSymbolNBits(const HuffmanSymbolInfo* ZKR_RESTRICT info,
                        BitWriter* ZKR_RESTRICT writer) {
+  size_t ms = 0;
   for (size_t i = 0; i < kNumSymbols; i++) {
+    if (info[i].present) {
+      ms = i;
+    }
+  }
+  writer->Write(8, ms);
+  for (size_t i = 0; i < ms + 1; i++) {
     if (info[i].present) {
       writer->Write(1, 1);
       writer->Write(3, info[i].nbits - 1);
@@ -53,11 +61,15 @@ void EncodeSymbolNBits(const HuffmanSymbolInfo* ZKR_RESTRICT info,
 
 void DecodeSymbolNBits(HuffmanSymbolInfo* ZKR_RESTRICT info,
                        BitReader* ZKR_RESTRICT reader) {
-  for (size_t i = 0; i < kNumSymbols; i++) {
+  size_t ms = reader->ReadBits(8);
+  for (size_t i = 0; i < ms + 1; i++) {
     info[i].present = reader->ReadBits(1);
     if (info[i].present) {
       info[i].nbits = reader->ReadBits(3) + 1;
     }
+  }
+  for (size_t i = ms + 1; i < kNumSymbols; i++) {
+    info[i].present = 0;
   }
 }
 
@@ -189,7 +201,7 @@ void ComputeSymbolNumBits(const std::vector<size_t>& histogram,
 std::vector<size_t> HuffmanEncode(
     const IntegerData& integers, size_t num_contexts, BitWriter* writer,
     const std::vector<size_t>& node_degree_indices,
-    std::vector<float>* bits_per_ctx) {
+    std::vector<float>* bits_per_ctx, std::vector<float>* extra_bits_per_ctx) {
   std::vector<size_t> node_degree_bit_pos;
   node_degree_bit_pos.reserve(node_degree_indices.size());
   size_t current_node = 0;
@@ -201,6 +213,9 @@ std::vector<size_t> HuffmanEncode(
 
   writer->Reserve(num_contexts * kNumSymbols * 4);
   bits_per_ctx->resize(num_contexts);
+  if (extra_bits_per_ctx) {
+    extra_bits_per_ctx->resize(num_contexts);
+  }
 
   // Compute and encode symbol length and bits for each symbol.
   ZKR_ASSERT(histograms.size() == num_contexts);
@@ -216,6 +231,7 @@ std::vector<size_t> HuffmanEncode(
   size_t total_nbits = 0;
   integers.ForEach([&](size_t ctx, size_t token, size_t nextrabits,
                        size_t extrabits, size_t i) {
+    ZKR_ASSERT(token < kNumSymbols);
     if (current_node < node_degree_indices.size() &&
         i == node_degree_indices[current_node]) {
       node_degree_bit_pos.push_back(total_nbits + nbits_histo);
@@ -233,6 +249,9 @@ std::vector<size_t> HuffmanEncode(
     writer->Write(info[ctx][token].nbits, info[ctx][token].bits);
     writer->Write(nextrabits, extrabits);
     (*bits_per_ctx)[ctx] += nextrabits + info[ctx][token].nbits;
+    if (extra_bits_per_ctx) {
+      (*extra_bits_per_ctx)[ctx] += nextrabits;
+    }
   });
 
   return node_degree_bit_pos;
