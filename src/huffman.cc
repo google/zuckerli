@@ -201,7 +201,8 @@ void ComputeSymbolNumBits(const std::vector<size_t>& histogram,
 std::vector<size_t> HuffmanEncode(
     const IntegerData& integers, size_t num_contexts, BitWriter* writer,
     const std::vector<size_t>& node_degree_indices,
-    std::vector<float>* bits_per_ctx, std::vector<float>* extra_bits_per_ctx) {
+    std::vector<double>* bits_per_ctx,
+    std::vector<double>* extra_bits_per_ctx) {
   std::vector<size_t> node_degree_bit_pos;
   node_degree_bit_pos.reserve(node_degree_indices.size());
   size_t current_node = 0;

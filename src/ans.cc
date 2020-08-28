@@ -196,7 +196,7 @@ struct ANSEncSymbolInfo {
 }  // namespace
 
 void ANSEncode(const IntegerData& integers, size_t num_contexts,
-               BitWriter* writer, std::vector<float>* bits_per_ctx) {
+               BitWriter* writer, std::vector<double>* bits_per_ctx) {
   // Compute histograms.
   std::vector<std::vector<size_t>> histograms;
   histograms.resize(num_contexts);
