@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "integer_coder.h"
+#include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 
 ABSL_DECLARE_FLAG(int32_t, ref_block);

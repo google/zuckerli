@@ -2,6 +2,7 @@
 #define ZUCKERLI_ENCODE_H
 #include <vector>
 
+#include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "uncompressed_graph.h"
 

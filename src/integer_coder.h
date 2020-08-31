@@ -20,6 +20,7 @@
 
 #include "bit_reader.h"
 #include "common.h"
+#include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 
 ABSL_DECLARE_FLAG(int32_t, log2_num_explicit);

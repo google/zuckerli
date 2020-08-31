@@ -42,7 +42,7 @@ TEST(HuffmanTest, TestRoundtrip) {
   }
 
   BitWriter writer;
-  std::vector<float> unused_bits_per_ctx;
+  std::vector<double> unused_bits_per_ctx;
   HuffmanEncode(data, kNumContexts, &writer, {}, &unused_bits_per_ctx);
 
   std::vector<uint8_t> encoded = std::move(writer).GetData();
