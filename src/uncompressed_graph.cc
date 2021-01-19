@@ -31,7 +31,9 @@ MemoryMappedFile::MemoryMappedFile(const std::string &filename) {
   size_ /= sizeof(uint32_t);
   fd_ = open(filename.c_str(), O_RDONLY, 0);
   auto flags = MAP_SHARED;
+#ifdef __linux__
   flags |= MAP_POPULATE;
+#endif
   data_ = (const uint32_t *)mmap(NULL, size_ * sizeof(uint32_t), PROT_READ,
                                  flags, fd_, 0);
   ZKR_ASSERT(data_ != MAP_FAILED);

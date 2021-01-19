@@ -66,11 +66,17 @@ add_executable(bits_test src/bits_test.cc)
 target_link_libraries(bits_test bit_writer bit_reader gmock gtest_main gtest Threads::Threads)
 gtest_discover_tests(bits_test)
 
-add_library(
-  entropy_coder_common
-  src/integer_coder.h
-)
-target_link_libraries(entropy_coder_common bit_reader bit_writer)
+# A library cannot contain just a headerfile.
+#add_library(
+#  entropy_coder_common
+#  src/integer_coder.h
+#)
+add_library(entropy_coder_common INTERFACE)
+target_include_directories(entropy_coder_common INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCDIR}>/src)
+
+target_link_libraries(entropy_coder_common INTERFACE bit_reader bit_writer)
 
 add_executable(entropy_coder_common_test src/entropy_coder_common_test.cc)
 target_link_libraries(entropy_coder_common_test entropy_coder_common gmock gtest_main gtest Threads::Threads)
@@ -118,8 +124,17 @@ target_link_libraries(traversal_main_uncompressed uncompressed_graph Threads::Th
 add_library(encode src/encode.h src/encode.cc src/context_model.h src/checksum.h)
 target_link_libraries(encode ans huffman uncompressed_graph)
 
-add_library(decode src/decode.h src/context_model.h src/checksum.h)
-target_link_libraries(decode ans huffman)
+
+# A library cannot contain just headerfiles.
+#add_library(decode src/decode.h src/context_model.h src/checksum.h)
+
+add_library(decode INTERFACE)
+target_include_directories(decode INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCDIR}>/src)
+
+target_link_libraries(decode INTERFACE ans huffman)
+
 
 add_library(
   compressed_graph

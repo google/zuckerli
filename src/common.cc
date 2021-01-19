@@ -14,6 +14,7 @@
 #include "common.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 namespace zuckerli {
 __attribute__((noreturn, __format__(__printf__, 3, 4))) void
