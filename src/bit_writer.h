@@ -23,16 +23,16 @@ namespace zuckerli {
 // systems.
 class BitWriter {
  public:
-  static constexpr size_t kMaxBitsPerCall = 56;
+  static constexpr std::size_t kMaxBitsPerCall = 56;
 
-  void Write(size_t nbits, size_t bits);
+  void Write(std::size_t nbits, std::size_t bits);
 
-  size_t NumBitsWritten() { return bits_written_; }
+  std::size_t NumBitsWritten() { return bits_written_; }
 
   // Required before calls to write.
-  void Reserve(size_t nbits);
+  void Reserve(std::size_t nbits);
 
-  void AppendAligned(const uint8_t *ptr, size_t cnt);
+  void AppendAligned(const uint8_t *ptr, std::size_t cnt);
 
   void ZeroPad() { bits_written_ = (bits_written_ + 7) / 8 * 8; }
 
@@ -40,7 +40,7 @@ class BitWriter {
 
  private:
   std::vector<uint8_t> data_;
-  size_t bits_written_ = 0;
+  std::size_t bits_written_ = 0;
 };
 }  // namespace zuckerli
 
